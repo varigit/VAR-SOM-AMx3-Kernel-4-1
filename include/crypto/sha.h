@@ -70,10 +70,22 @@ struct sha1_state {
 	u8 buffer[SHA1_BLOCK_SIZE];
 };
 
+struct sha224_state {
+	u32 state[SHA224_DIGEST_SIZE / 4];
+	u64 count;
+	u8 buf[SHA224_BLOCK_SIZE];
+};
+
 struct sha256_state {
 	u32 state[SHA256_DIGEST_SIZE / 4];
 	u64 count;
 	u8 buf[SHA256_BLOCK_SIZE];
+};
+
+struct sha384_state {
+	u64 state[SHA384_DIGEST_SIZE / 8];
+	u64 count[2];
+	u8 buf[SHA384_BLOCK_SIZE];
 };
 
 struct sha512_state {
