@@ -624,16 +624,12 @@
 	};
 
 	ctw6120_tsc@38 {
-		compatible = "var,ctw6120-tsc";
+		compatible = "edt,edt-ft5206";
 		pinctrl-names = "default";
 		pinctrl-0 = <&ctw6120_pins>;
 		reg = <0x38>;
 		interrupt-parent = <&gpio0>;
 		interrupts = <3 IRQ_TYPE_NONE>;
-		
-
-		x-size = <800>;
-		y-size = <480>;
 	};
 };
 
