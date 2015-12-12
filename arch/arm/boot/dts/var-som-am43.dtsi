@@ -14,6 +14,7 @@
 #include <dt-bindings/pinctrl/am43xx.h>
 #include <dt-bindings/pwm/pwm.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
 
 / {
 	model = "Variscite AM437x SOM";
@@ -67,32 +68,6 @@
 		brightness-levels = <1 51 53 56 62 75 101 152 250>;
 		default-brightness-level = <8>;
 	};
-
-	matrix_keypad: matrix_keypad@0 {
-		compatible = "gpio-matrix-keypad";
-		debounce-delay-ms = <5>;
-		col-scan-delay-us = <2>;
-
-		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&matrix_keypad_default>;
-		pinctrl-1 = <&matrix_keypad_sleep>;
-
-		linux,wakeup;
-
-		row-gpios = <&gpio0 3 GPIO_ACTIVE_HIGH /* Bank0, pin3 */
-				&gpio4 3 GPIO_ACTIVE_HIGH /* Bank4, pin3 */
-				&gpio4 2 GPIO_ACTIVE_HIGH>; /* Bank4, pin2 */
-
-		col-gpios = <&gpio3 19 GPIO_ACTIVE_HIGH /* Bank3, pin19 */
-				&gpio3 20 GPIO_ACTIVE_HIGH>; /* Bank3, pin20 */
-
-		linux,keymap = <0x00000201      /* P1 */
-				0x00010202      /* P2 */
-				0x01000067      /* UP */
-				0x0101006a      /* RIGHT */
-				0x02000069      /* LEFT */
-				0x0201006c>;      /* DOWN */
-		};
 
 	lcd0: display {
 		compatible = "osddisplays,osd057T0559-34ts", "panel-dpi";
@@ -154,16 +129,50 @@
 		clock-frequency = <12000000>;
 	};
 
-	leds {
-		compatible = "gpio-leds";
-		hdd {
-			label = "IDE Activity";
-			gpios = <&gpio4 26 GPIO_ACTIVE_HIGH>;
-			linux,default-trigger = "ide-disk";
+	gpio_buttons: gpio_buttons@0 {
+		compatible = "gpio-keys";
+		pinctrl-names = "default";
+		pinctrl-0 = <&keys_pins>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		switch@4 {
+			label = "sw4";
+			linux,code = <KEY_MENU>;
+			gpios = <&gpio5 6 GPIO_ACTIVE_LOW>;
+			gpio-key,wakeup;
 		};
 
-		heartbeat {
-			label = "Heart Beat";
+		switch@5 {
+			label = "sw5";
+			linux,code = <KEY_HOME>;
+			gpios = <&gpio5 5 GPIO_ACTIVE_LOW>;
+			gpio-key,wakeup;
+		};
+
+		switch@6 {
+			label = "sw6";
+			linux,code = <KEY_BACK>;
+			gpios = <&gpio5 4 GPIO_ACTIVE_LOW>;
+			gpio-key,wakeup;
+		};
+	};
+
+	gpio_leds: gpio_leds@0 {
+		compatible = "gpio-leds";
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&leds_pins>;
+
+		led3 {
+			label = "led3";
+			gpios = <&gpio4 26 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "none";
+		};
+
+		led2 {
+			label = "led2";
 			gpios = <&gpio4 8 GPIO_ACTIVE_HIGH >;
 			linux,default-trigger = "heartbeat";
 		};
@@ -467,8 +476,6 @@
 
 	vpfe1_pins_default: vpfe1_pins_default {
 		pinctrl-single,pins = <
-			0x1CC (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data9 mode 0*/
-			0x1D0 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data8 mode 0*/
 			0x1D4 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_hd mode 0*/
 			0x1D8 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_vd mode 0*/
 			0x1DC (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_pclk mode 0*/
@@ -480,13 +487,15 @@
 			0x1FC (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data5 mode 0*/
 			0x200 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data6 mode 0*/
 			0x204 (PIN_INPUT_PULLUP | MUX_MODE0)  /* cam1_data7 mode 0*/
+			0x208 (PIN_INPUT_PULLUP | MUX_MODE2)  /* cam0_data0.cam1_data9 */
+			0x20C (PIN_INPUT_PULLUP | MUX_MODE2)  /* cam0_data1.cam1_data8 */
+			0x210 (PIN_INPUT_PULLUP | MUX_MODE2)  /* cam0_data2.cam1_data10 */
+			0x214 (PIN_INPUT_PULLUP | MUX_MODE2)  /* cam0_data3.cam1_data11 */
 		>;
 	};
 
 	vpfe1_pins_sleep: vpfe1_pins_sleep {
 		pinctrl-single,pins = <
-			0x1CC (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data9 mode 0*/
-			0x1D0 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data8 mode 0*/
 			0x1D4 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_hd mode 0*/
 			0x1D8 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_vd mode 0*/
 			0x1DC (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_pclk mode 0*/
@@ -498,6 +507,10 @@
 			0x1FC (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data5 mode 0*/
 			0x200 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data6 mode 0*/
 			0x204 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam1_data7 mode 0*/
+			0x208 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data0.cam1_data9 */
+			0x20C (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data1.cam1_data8 */
+			0x210 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data2.cam1_data10 */
+			0x214 (DS0_PULL_UP_DOWN_EN | INPUT_EN | MUX_MODE7)  /* cam0_data3.cam1_data11 */
 		>;
 	};
 
@@ -517,22 +530,6 @@
 			0x10c (PIN_INPUT_PULLDOWN | MUX_MODE7)
 			0x110 (PIN_INPUT_PULLDOWN | MUX_MODE7)
 			0x144 (PIN_INPUT_PULLDOWN | MUX_MODE7)
-		>;
-	};
-
-	matrix_keypad_default: matrix_keypad_default {
-		pinctrl-single,pins = <
-			0x1a4 (PIN_OUTPUT | MUX_MODE7)
-			0x1a8 (PIN_OUTPUT | MUX_MODE7)
-			0x1ac (PIN_INPUT | PULL_DISABLE | MUX_MODE9)	/* mcasp0_ahclkx.gpio0_3 */
-		>;
-	};
-
-	matrix_keypad_sleep: matrix_keypad_sleep {
-		pinctrl-single,pins = <
-			0x1a4 (PULL_UP | MUX_MODE7)
-			0x1a8 (PULL_UP | MUX_MODE7)
-			0x1ac (PIN_INPUT | PULL_DISABLE | MUX_MODE9)
 		>;
 	};
 
@@ -580,9 +577,24 @@
 		>;
 	};
 
-        ft5x06_pins: pinmux_ft5x06_pins {
-       		pinctrl-single,pins = <
-			0x210 (PIN_INPUT_PULLUP | MUX_MODE7)     /* gpio4_29, INPUT | MODE7 */
+	ft5x06_pins: pinmux_ft5x06_pins {
+		pinctrl-single,pins = <
+			0x224 (PIN_INPUT_PULLUP | MUX_MODE7)	/* cam0_data7.gpio4_29, INPUT | MODE7 */
+		>;
+	};
+
+	keys_pins: pinmux_keys_pins {
+		pinctrl-single,pins = <
+			0x250 (PIN_INPUT_PULLUP | MUX_MODE7)	/* spi4_sclk.gpio5_4 */
+			0x254 (PIN_INPUT_PULLUP | MUX_MODE7)	/* spi4_d0.gpio5_5 */
+			0x258 (PIN_INPUT_PULLUP | MUX_MODE7)	/* spi4_d1.gpio5_6 */
+		>;
+	};
+
+	leds_pins: pinmux_leds_pins {
+		pinctrl-single,pins = <
+			0x1d0 (PIN_OUTPUT_PULLDOWN | MUX_MODE7)	/* cam1_data8.gpio4_8 */
+			0x218 (PIN_OUTPUT_PULLDOWN | MUX_MODE7)	/* cam0_data4.gpio4_26 */
 		>;
 	};
 
@@ -598,9 +610,6 @@
 			0x244	(PIN_INPUT_PULLDOWN | MUX_MODE7)
 			0x248	(PIN_INPUT_PULLDOWN | MUX_MODE7)
 			0x24C	(PIN_INPUT_PULLDOWN | MUX_MODE7)
-			0x250	(PIN_INPUT_PULLDOWN | MUX_MODE7)
-			0x254	(PIN_INPUT | PULL_DISABLE | MUX_MODE7)
-			0x258	(PIN_INPUT_PULLDOWN | MUX_MODE7)
 			0x260	(PIN_INPUT | PULL_DISABLE | MUX_MODE7)
 			0x268	(PIN_INPUT_PULLDOWN | MUX_MODE7)
 			0x278	(PIN_INPUT_PULLDOWN | MUX_MODE7)
@@ -1050,11 +1059,9 @@
 
 &vpfe1 {
 	status = "okay";
-#if 0 /* Disable camera: pin 0x1cc is shared with dss */
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&vpfe1_pins_default>;
 	pinctrl-1 = <&vpfe1_pins_sleep>;
-#endif
 	port {
 		vpfe1_ep: endpoint {
 			remote-endpoint = <&ov2659_0>;
