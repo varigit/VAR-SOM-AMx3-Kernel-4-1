@@ -879,6 +879,13 @@
 					    2 31>;
 };
 
+&uart2 {
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart2_pins_default>;
+	pinctrl-1 = <&uart2_pins_sleep>;
+};
+
 &uart3 {
 	status = "okay";
 	pinctrl-names = "default";
