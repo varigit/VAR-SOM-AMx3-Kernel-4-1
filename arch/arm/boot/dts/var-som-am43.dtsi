@@ -963,7 +963,7 @@
 		interrupt-parent = <&gic>;
 		interrupts = <GIC_SPI 100 IRQ_TYPE_LEVEL_HIGH>;
 		ready-gpio = <&gpmc 0 GPIO_ACTIVE_HIGH>;	/* gpmc_wait0 */
-		ti,nand-ecc-opt = "bch16";
+		ti,nand-ecc-opt = "bch8";
 		ti,elm-id = <&elm>;
 		nand-bus-width = <8>;
 		gpmc,device-width = <1>;
