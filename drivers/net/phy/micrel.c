@@ -73,6 +73,10 @@
 
 #define PS_TO_REG				200
 
+#define KSZPHY_REGISTERS_NUM			0x20
+#define KSZPHY_SW_RESET_MSK			0x8000
+#define KSZPHY_AUTO_NEGOTIATE_MSK		(1<<9)
+
 struct kszphy_type {
 	u32 led_mode_reg;
 	u16 interrupt_level_mask;
@@ -86,6 +90,7 @@ struct kszphy_priv {
 	int led_mode;
 	bool rmii_ref_clk_sel;
 	bool rmii_ref_clk_sel_val;
+	bool reset_regs;
 };
 
 static const struct kszphy_type ksz8021_type = {
@@ -283,6 +288,68 @@ static int kszphy_config_init(struct phy_device *phydev)
 
 	if (priv->led_mode >= 0)
 		kszphy_setup_led(phydev, type->led_mode_reg, priv->led_mode);
+
+	return 0;
+}
+
+static int kszphy_config_regs(struct phy_device *phydev, const u16 *kszphy_cfg)
+{
+	int k;
+
+	// reset
+	phy_write(phydev, 0, kszphy_cfg[0] | KSZPHY_SW_RESET_MSK);
+	phy_write(phydev, 0, kszphy_cfg[0] & (~KSZPHY_AUTO_NEGOTIATE_MSK));
+
+	// Write all configuration register values to PHY, skipping control and status registers
+	for (k = 2; k < (KSZPHY_REGISTERS_NUM-1); k++)
+		phy_write(phydev, k, kszphy_cfg[k]);
+
+	// start auto-negotiate
+	phy_write(phydev, 0, kszphy_cfg[0] | KSZPHY_AUTO_NEGOTIATE_MSK);
+
+	return 0;
+}
+
+static int ksz8021_config_init(struct phy_device *phydev)
+{
+	struct kszphy_priv *priv = phydev->priv;
+	const u16 ksz8021_PHY_cfg_values[KSZPHY_REGISTERS_NUM] = {
+		0x00003100, 0x0000786d, 0x00000022, 0x00001556,
+		0x000001e1, 0x00000000, 0x00000000, 0x00002001,
+		0x00000000, 0x00000000, 0x00000000, 0x00000000,
+		0x00000000, 0x00000000, 0x00000000, 0x00000000,
+		0x00000000, 0x00000000, 0x00000000, 0x00000000,
+		0x00000000, 0x00000000, 0x00000002, 0x00003c22,
+		0x00000800, 0x00007777, 0x00007777, 0x00000000,
+		0x00000000, 0x00000000, 0x00000116
+		};
+
+	kszphy_config_init(phydev);
+
+	if (priv->reset_regs)	// Configure PHY
+		kszphy_config_regs(phydev, ksz8021_PHY_cfg_values);
+
+	return 0;
+}
+
+static int ksz8081_config_init(struct phy_device *phydev)
+{
+	struct kszphy_priv *priv = phydev->priv;
+	const u16 ksz8081_PHY_cfg_values[KSZPHY_REGISTERS_NUM] = {
+			0x00003100, 0x0000786d, 0x00000022, 0x00001560,
+			0x000081e1, 0x0000cde1, 0x0000000f, 0x00002001,
+			0x00004006, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			0x00000000, 0x00000000, 0x00000002, 0x00003c22,
+			0x00000801, 0x00007777, 0x00007777, 0x00000029,
+			0x00000003, 0x00000000, 0x00000136
+			};
+
+	kszphy_config_init(phydev);
+
+	if (priv->reset_regs)	// Configure PHY
+		kszphy_config_regs(phydev, ksz8081_PHY_cfg_values);
 
 	return 0;
 }
@@ -573,6 +640,8 @@ static int kszphy_probe(struct phy_device *phydev)
 		priv->rmii_ref_clk_sel_val = true;
 	}
 
+	priv->reset_regs = of_property_read_bool(np, "micrel,reset-regs");
+
 	return 0;
 }
 
@@ -601,7 +670,7 @@ static struct phy_driver ksphy_driver[] = {
 	.flags		= PHY_HAS_MAGICANEG | PHY_HAS_INTERRUPT,
 	.driver_data	= &ksz8021_type,
 	.probe		= kszphy_probe,
-	.config_init	= kszphy_config_init,
+	.config_init	= ksz8021_config_init,
 	.config_aneg	= genphy_config_aneg,
 	.read_status	= genphy_read_status,
 	.ack_interrupt	= kszphy_ack_interrupt,
@@ -618,7 +687,7 @@ static struct phy_driver ksphy_driver[] = {
 	.flags		= PHY_HAS_MAGICANEG | PHY_HAS_INTERRUPT,
 	.driver_data	= &ksz8021_type,
 	.probe		= kszphy_probe,
-	.config_init	= kszphy_config_init,
+	.config_init	= ksz8021_config_init,
 	.config_aneg	= genphy_config_aneg,
 	.read_status	= genphy_read_status,
 	.ack_interrupt	= kszphy_ack_interrupt,
@@ -669,7 +738,7 @@ static struct phy_driver ksphy_driver[] = {
 	.flags		= PHY_HAS_MAGICANEG | PHY_HAS_INTERRUPT,
 	.driver_data	= &ksz8051_type,
 	.probe		= kszphy_probe,
-	.config_init	= kszphy_config_init,
+	.config_init	= ksz8021_config_init,
 	.config_aneg	= genphy_config_aneg,
 	.read_status	= genphy_read_status,
 	.ack_interrupt	= kszphy_ack_interrupt,
@@ -701,7 +770,7 @@ static struct phy_driver ksphy_driver[] = {
 	.flags		= PHY_HAS_MAGICANEG | PHY_HAS_INTERRUPT,
 	.driver_data	= &ksz8081_type,
 	.probe		= kszphy_probe,
-	.config_init	= kszphy_config_init,
+	.config_init	= ksz8081_config_init,
 	.config_aneg	= genphy_config_aneg,
 	.read_status	= genphy_read_status,
 	.ack_interrupt	= kszphy_ack_interrupt,
